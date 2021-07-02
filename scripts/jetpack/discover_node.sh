@@ -1,4 +1,5 @@
 #! /bin/bash
+. ~/devstack/openrc admin
 pm_addr=$1
 pm_user=$2
 pm_password=$3
