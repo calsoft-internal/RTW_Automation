@@ -1,5 +1,11 @@
 #! /bin/bash
 . ~/devstack/openrc admin
+if [ $# -ne 3 ]; then
+    echo
+    echo "Usage:Test discover noder <IP> <UN> <P>"
+    echo
+    exit 1
+fi
 pm_addr=$1
 pm_user=$2
 pm_password=$3
