@@ -6,6 +6,10 @@ if [ $# -ne 3 ]; then
     echo
     exit 1
 fi
+<<<<<<< HEAD
+=======
+
+>>>>>>> 46d82c0db9aadebc96740d7cf20eb26d1d6f5a47
 pm_addr=$1
 pm_user=$2
 pm_password=$3
