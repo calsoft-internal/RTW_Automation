@@ -20,32 +20,35 @@ echo "INFO: Checking node existance"
 result=$(openstack baremetal node show $NODE_UUID -c 'uuid' -f value)
 if [ -z "$result" ]
 then
-        echo "ERRRO: Node is not present or provided invalid node uuid "
+        echo "ERROR: Node is not present or provided invalid ${NODE_UUID}"
         exit 1
 else
-        echo "INFO: Preparing node for inspection"
+        echo "INFO: Preparing ${NODE_UUID} node for inspection"
 fi
 
 echo "INFO: Checking node provision_state"
-state=$(openstack baremetal node show $NODE_UUID -c provision_state -f value)
-if [ $state == 'manageable' ]
+provision_state=$(openstack baremetal node show $NODE_UUID -c provision_state -f value)
+echo "INFO : Current provision_state for ${NODE_UUID}  is ${provision_state}"
+
+if [ $provision_state == 'manageable' ]
 then
-        echo "INFO: Node provision_state is ${state}"
-        #start_inspection=$(openstack baremetal node inspect $NODE_UUID)
+        echo "INFO: Node provision_state is ${provision_state}"
 else
-	echo "ERROR: Invalid Node provision_state it should be manageable"
+	echo "ERROR: Invalid ${provision_state} provision_state for ${NODE_UUID} it should be manageable"
 	exit 1
 fi
+
 echo "INFO: Checking node inspect_interface"
 current_interface=$(openstack baremetal node show $NODE_UUID -c "inspect_interface" -f value)
+echo "INFO : Current inspect_interface for ${NODE_UUID}  is ${current_interface}"
+
 if [ $current_interface == 'idrac-wsman' ]
 then
         echo "INFO: Node inspect_interface is ${current_interface}"
 else
-        echo "ERROR: Invalid Node inspect_interface"
+        echo "ERROR: Invalid ${current_interface} inspect_interface set for ${NODE_UUID}"
         exit 1
 fi
-#todo use while loop and add inspect failed condition 
 
 echo "INFO: Starting ws-man inspection"
 openstack baremetal node inspect $NODE_UUID
@@ -59,20 +62,22 @@ do
 		break
 	elif [ $inspection_result == "inspect failed" ]
 	then
-		echo "ERROR: Node inspection failed "
+		error_msg=$(openstack baremetal node show $NODE_UUID -c last_err -f value)
+		echo "ERROR: Node inspection failed due to ${error_msg}"
 		exit 1
 	else
-		echo "INFO: Node is in inspecting state"
+		echo "INFO: Node is in ${inspection_result} state"
 
 	fi
 	
 done
 
-echo "INFO: Checking created baremetal port list"
+echo "INFO: Checking baremetal port list"
 port_list=$(openstack baremetal port list --node $NODE_UUID -c 'UUID' -f value)
+
 if [ -z "$port_list" ]
 then
-        echo "WARNING: Node dosent have any baremetal port created "
+        echo "WARNING: Baremetal port not found for ${NODE_UUID} "
 else
 	echo "INFO: list of created baremetal port list is ${port_list}"
 	echo "INFO: Checking baremetal port pxe_enabled status"
@@ -89,6 +94,3 @@ else
 	done
 fi
 
-#openstack baremetal port list --node b6f2ec86-4160-4fce-86dd-c9c4ded6148c -c 'UUID' -f value
-#openstack baremetal port list --node b6f2ec86-4160-4fce-86dd-c9c4ded6148c
-#true=openstack baremetal port show f63b4a44-1453-469f-bfef-47fac0cc6e29 -c 'pxe_enabled' -f value
