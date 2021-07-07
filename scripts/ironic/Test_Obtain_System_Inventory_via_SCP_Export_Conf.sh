@@ -33,7 +33,7 @@ if [ $provision_state == 'manageable' ]
 then
         echo "INFO: Node $NODE_UUID provision_state is ${provision_state}"
 else
-	echo "ERROR: Invalid Node provision_state $provision_state, it should be manageable"
+	echo "ERROR: Invalid provision_state $provision_state set for $NODE_UUID, it should be manageable"
 	exit 1
 fi
 
@@ -43,7 +43,7 @@ if [ $current_interface == 'idrac-redfish' ]
 then
         echo "INFO: Node $NODE_UUID management_interface is ${current_interface}"
 else
-        echo "ERROR: Invalid Node $NODE_UUID management_interface $current_interface"
+        echo "ERROR: Invalid management_interface $current_interface set for node $NODE_UUID"
         exit 1
 fi
 
@@ -86,6 +86,7 @@ do
 		exit 1
 	else
 		echo "INFO: Node $NODE_UUID is in clean wait state"
+		sleep 60
 
 	fi
 	
