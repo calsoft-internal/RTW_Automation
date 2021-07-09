@@ -3,13 +3,13 @@ TEST_CASE_NAME="Test obtain system inventory via System Configuration Profile (S
 
 if [ $# -ne 2 ]; then
     echo
-    echo "WARNING: Usage: Test_Obtain_System_Inventory_via_SCP_Export_Conf.sh <NODE_UUID> <INPUT_JSON>"
+    echo "WARNING: Usage: Test_Obtain_System_Inventory_via_SCP_Export_Conf.sh <NODE_UUID> <INPUT_EXPORT_CONFIG_JSON>"
     echo
     exit 1
 fi
 
 NODE_UUID=$1
-INPUT_JSON_FILE=$2
+INPUT_EXPORT_CONFIG_JSON=$2
 
 echo "INFO: NODE UUID is: $NODE_UUID"
 
@@ -18,8 +18,8 @@ source ~/devstack/openrc admin
 set -x
 
 echo "INFO: Checking node existance"
-result=$(openstack baremetal node show $NODE_UUID -c 'uuid' -f value)
-if [ -z "$result" ]
+node_uuid=$(openstack baremetal node show $NODE_UUID -c 'uuid' -f value)
+if [ -z "$node_uuid" ]
 then
         echo "ERRRO: Node $NODE_UUID is not present or provided invalid node uuid "
         exit 1
@@ -66,21 +66,21 @@ BASE_URL=$(swift auth | awk -F = '/OS_STORAGE_URL/ {print $2}')
 
 echo "INFO: update the input json"
 BASE_URL=${BASE_URL//\//\\/}
-NAME="export_output"
-sed -i "s/<BASE_URL>\/configuration_molds\/<NAME>.json/$BASE_URL\/configuration_molds\/$NAME.json/g" $INPUT_JSON_FILE
+NAME="output_export_config"
+sed -i "s/<BASE_URL>\/configuration_molds\/<NAME>.json/$BASE_URL\/configuration_molds\/$NAME.json/g" $INPUT_EXPORT_CONFIG_JSON
 
 echo "INFO: start the export configurarion via CLI"
-baremetal node clean $NODE_UUID --clean-steps $INPUT_JSON_FILE
+baremetal node clean $NODE_UUID --clean-steps $INPUT_EXPORT_CONFIG_JSON
 
 echo "INFO: Checking the export configuration status"
 while :
 do
-	result=$(openstack baremetal node show $NODE_UUID -c provision_state -f value)
-	if [ "$result" == "manageable" ]
+	provision_state=$(openstack baremetal node show $NODE_UUID -c provision_state -f value)
+	if [ "$provision_state" == "manageable" ]
 	then
 		echo "INFO: Executed export configuration clean step successfully on node $NODE_UUID"
 		break
-	elif [ "$result" == "clean failed" ]
+	elif [ "$provision_state" == "clean failed" ]
 	then
 		echo "ERROR: Execution failed for export configuration clean step on node $NODE_UUID"
 		exit 1
@@ -93,8 +93,8 @@ do
 done
 
 ## Check the exported output file in swift container
-container_output=$(swift list configuration_molds | grep export_output.json | wc -l)
-if [ $container_output == 1 ]
+output_export_config=$(swift list configuration_molds | grep output_export_config.json | wc -l)
+if [ $output_export_config == 1 ]
 then
 	echo "INFO: exported system details successfully on node $NODE_UUID"
 else
