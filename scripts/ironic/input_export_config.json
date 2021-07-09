@@ -1,0 +1,9 @@
+[
+        {
+                "interface": "management",
+                "step": "export_configuration",
+                "args": {
+                        "export_configuration_location": "<BASE_URL>/configuration_molds/<NAME>.json"
+                }
+        }
+]
