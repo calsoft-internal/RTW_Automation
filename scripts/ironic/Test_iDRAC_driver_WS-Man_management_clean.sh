@@ -3,15 +3,13 @@ TEST_CASE_NAME="Test iDRAC driver WS-Man management cleaning step"
 
 if [ $# -ne 2 ]; then
     echo
-    echo "WARNING: Usage: Test_iDRAC_driver_WS-Man_management_clean.sh <NODE_UUID> <Required_step>"
+    echo "WARNING: Usage: Test_iDRAC_driver_WS-Man_management_clean.sh <NODE_UUID> <clean_step>.The valid clean steps are- reset_idrac,known_good_state,clear_job_queue"
     echo
     exit 1
 fi
 
 NODE_UUID=$1
-Required_step=$2
-
-
+clean_step=$2
 
 echo "INFO: NODE UUID is: $NODE_UUID"
 
@@ -20,54 +18,54 @@ echo "INFO: NODE UUID is: $NODE_UUID"
 set -x
 
 echo "INFO: Checking node existence"
-result=$(openstack baremetal node show $NODE_UUID -c 'uuid' -f value)
-if [ -z "$result" ]
+node_uuid=$(openstack baremetal node show $NODE_UUID -c 'uuid' -f value)
+if [ -z "$node_uuid" ]
 then
-        echo "ERROR: Node is not present or invalid node UUID has been provided ${NODE_UUID}"
+        echo "ERROR: Node ${NODE_UUID} is not present or invalid node UUID has been provided "
         exit 1
 else
-        echo "INFO: Preparing ${NODE_UUID} node for cleaning step"
+        echo "INFO: Preparing node ${NODE_UUID} for cleaning step"
 fi
 
 echo "INFO: Checking node provision_state"
 provision_state=$(openstack baremetal node show $NODE_UUID -c provision_state -f value)
 if [ $provision_state == 'manageable' ]
 then
-        echo "INFO: Node provision_state is ${provision_state}"
+        echo "INFO: Node ${NODE_UUID} provision_state is ${provision_state}"
 else
-	echo "ERROR: Invalid ${provision_state} provision_state for ${NODE_UUID} it should be manageable"
+	echo "ERROR: Invalid ${provision_state} provision_state for node ${NODE_UUID} it should be manageable"
 	exit 1
 fi
+
 echo "INFO: Checking node management_interface"
 current_interface=$(openstack baremetal node show $NODE_UUID -c "management_interface" -f value)
 if [ $current_interface == 'idrac-wsman' ]
 then
-        echo "INFO: Node management_interface is ${current_interface}"
+        echo "INFO: Node ${NODE_UUID} management_interface is ${current_interface}"
 else
-        echo "ERROR: Invalid ${current_interface} management_interface set for ${NODE_UUID}"
+        echo "ERROR: Invalid ${current_interface} management_interface set for node ${NODE_UUID}"
         exit 1
 fi
 
-echo "INFO: Starting management cleaning steps"
-openstack baremetal node clean --clean-steps '[{ "interface" : "management","step" :"'$Required_step'"}]' $NODE_UUID
-
+echo "INFO: Starting $clean_step cleaning step"
+openstack baremetal node clean --clean-steps '[{ "interface" : "management","step" :"'$clean_step'"}]' $NODE_UUID
 while :
 do
 	clean_result=$(openstack baremetal node show $NODE_UUID -c provision_state -f value)
-	sleep 120
-	if [ $clean_result == 'manageable' ]
+	
+	if [ "$clean_result" == "manageable" ]
 	then
-		echo "INFO: $Required_step completed successfully"
+		echo "INFO: $clean_step completed successfully"
 		break
-	elif [ $clean_result == 'clean failed']
+	elif [ "$clean_result" == "clean failed" ]
 	then
-		echo "ERROR: Node cleaning  failed for $Required_step"
+		echo "ERROR:$clean_step clean step failed for node $NODE_UUID"
 		error_msg=$(openstack baremetal node show $NODE_UUID -c last_err -f value)
 		echo "ERROR: Node clean failed due to ${error_msg}"
 		exit 1
 	else
-		echo "INFO: Node is in $clean_result state for $Required_step"
+		echo "INFO: Node is in $clean_result state for $clean_step"
+                sleep 60
 
 	fi
-
 done
