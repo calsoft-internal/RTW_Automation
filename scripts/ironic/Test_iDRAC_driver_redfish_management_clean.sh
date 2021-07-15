@@ -1,9 +1,9 @@
 #!/bin/bash
-TEST_CASE_NAME="Test iDRAC driver WS-Man management cleaning step"
+TEST_CASE_NAME="Test iDRAC driver redfish management cleaning step"
 
 if [ $# -ne 2 ]; then
     echo
-    echo "WARNING: Usage: Test_iDRAC_driver_WS-Man_management_clean.sh <NODE_UUID> <clean_step>.The valid clean steps are- reset_idrac,known_good_state,clear_job_queue"
+    echo "WARNING: Usage: Test_iDRAC_driver_redfish_management_clean.sh <NODE_UUID> <clean_step>.The valid clean steps are- reset_idrac,known_good_state,clear_job_queue"
     echo
     exit 1
 fi
@@ -39,13 +39,24 @@ fi
 
 echo "INFO: Checking node management_interface"
 current_interface=$(openstack baremetal node show $NODE_UUID -c "management_interface" -f value)
-if [ $current_interface == 'idrac-wsman' ]
+if [ $current_interface == 'idrac-redfish' ]
 then
         echo "INFO: Node ${NODE_UUID} management_interface is ${current_interface}"
 else
         echo "ERROR: Invalid ${current_interface} management_interface set for node ${NODE_UUID}"
         exit 1
 fi
+
+Now=$(date "+%Y.%m.%d-%H.%M.%S")
+
+function start_ironic_cond_logs()
+{
+sudo journalctl -f -u devstack@ir-cond.service > Test_iDRAC_driver_redfish_management_clean_$clean_step-$Now 2>&1 &
+
+#filename=`ls /opt/stack/sagar_automation| grep "Test_iDRAC_driver_redfish_management_clean_$clean_step-"$Now`
+#echo "Generated Log File is : "$filename
+}
+start_ironic_cond_logs
 
 echo "INFO: Starting $clean_step cleaning step"
 openstack baremetal node clean --clean-steps '[{ "interface" : "management","step" :"'$clean_step'"}]' $NODE_UUID
@@ -69,3 +80,22 @@ do
 
 	fi
 done
+
+function stop_ironic_cond_logs()
+{
+check=`openstack baremetal node list | egrep -c 'manageable|clean failed'`
+if [ ${check} == 1 ]
+then
+        echo 'stopping condouctor log'
+        sudo pkill -f devstack@ir-cond.service
+else
+        stop_ironic_cond_logs
+
+fi
+
+}
+stop_ironic_cond_logs
+filename=`ls /opt/stack/sagar_automation| grep "Test_iDRAC_driver_redfish_management_clean_$clean_step-"$Now`
+echo "Generated Log File is : "$filename
+
+
